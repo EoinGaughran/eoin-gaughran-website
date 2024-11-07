@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+</head>
+<body>
+  <script>
+    let img, imgBlur1, imgBlur2;
+    let sliderBlur1, sliderBlur2, applyButton, checkboc;
+
+    function preload() {
+        img = loadImage('/public/media/img/DSC06583.JPG'); // replace with your image path
+    }
+
+    function setup() {
+      createCanvas(img.width, img.height);
+      
+      // Create sliders for Gaussian blur levels
+      sliderBlur1 = createSlider(1, 10, 1);
+      sliderBlur1.position(10, img.height + 10);
+      sliderBlur1.style('width', '200px');
+
+      checkbox = createCheckbox("Apply edge detection with DoG");
+      checkbox.position(10, img.height + 40);
+
+      sliderBlur2 = createSlider(1, 10, 2);
+      sliderBlur2.position(10, img.height + 70);
+      sliderBlur2.style('width', '200px');
+      
+      // Button to apply the blur settings
+      applyButton = createButton('Apply Filter');
+      applyButton.position(10, img.height + 100);
+      applyButton.mousePressed(applyDoG);
+      
+      // Display the original image at first
+      image(img, 0, 0);
+    }
+
+    function applyDoG() {
+        imgBlur1 = gaussianBlur(img, sliderBlur1.value());
+
+        if (checkbox.checked()) {
+
+            imgBlur2 = gaussianBlur(img, (sliderBlur1.value()*sliderBlur2.value()));
+
+            // Apply Difference of Gaussians
+            loadPixels();
+            imgBlur1.loadPixels();
+            imgBlur2.loadPixels();
+
+            for (let i = 0; i < pixels.length; i += 4) {
+                pixels[i] = imgBlur1.pixels[i] - imgBlur2.pixels[i]; // Red
+                pixels[i + 1] = imgBlur1.pixels[i + 1] - imgBlur2.pixels[i + 1]; // Green
+                pixels[i + 2] = imgBlur1.pixels[i + 2] - imgBlur2.pixels[i + 2]; // Blue
+                pixels[i + 3] = 255; // Alpha
+            }
+
+        } else {
+
+            // Apply Difference of Gaussians
+            loadPixels();
+            imgBlur1.loadPixels();
+
+            for (let i = 0; i < pixels.length; i += 4) {
+                pixels[i] = imgBlur1.pixels[i]; // Red
+                pixels[i + 1] = imgBlur1.pixels[i + 1]; // Green
+                pixels[i + 2] = imgBlur1.pixels[i + 2]; // Blue
+                pixels[i + 3] = 255; // Alpha
+            }
+        }
+
+      updatePixels();
+    }
+
+    function gaussianBlur(img, sigma) {
+      let kernelSize = Math.ceil(sigma * 3) * 2 + 1;
+      let kernel = createGaussianKernel(kernelSize, sigma);
+
+      let result = createImage(img.width, img.height);
+      result.loadPixels();
+      img.loadPixels();
+
+      for (let x = 0; x < img.width; x++) {
+        for (let y = 0; y < img.height; y++) {
+          let sumR = 0, sumG = 0, sumB = 0;
+          let weightSum = 0;
+
+          for (let i = 0; i < kernelSize; i++) {
+            for (let j = 0; j < kernelSize; j++) {
+              let xOffset = x + i - Math.floor(kernelSize / 2);
+              let yOffset = y + j - Math.floor(kernelSize / 2);
+
+              if (xOffset >= 0 && xOffset < img.width && yOffset >= 0 && yOffset < img.height) {
+                let pixelIndex = (yOffset * img.width + xOffset) * 4;
+                let weight = kernel[i][j];
+
+                sumR += img.pixels[pixelIndex] * weight;
+                sumG += img.pixels[pixelIndex + 1] * weight;
+                sumB += img.pixels[pixelIndex + 2] * weight;
+                weightSum += weight;
+              }
+            }
+          }
+
+          let resultIndex = (y * img.width + x) * 4;
+          result.pixels[resultIndex] = sumR / weightSum;
+          result.pixels[resultIndex + 1] = sumG / weightSum;
+          result.pixels[resultIndex + 2] = sumB / weightSum;
+          result.pixels[resultIndex + 3] = 255;
+        }
+      }
+
+      result.updatePixels();
+      return result;
+    }
+
+    function createGaussianKernel(size, sigma) {
+      let kernel = Array.from({ length: size }, () => new Array(size).fill(0));
+      let mean = Math.floor(size / 2);
+      let sum = 0;
+
+      for (let x = 0; x < size; x++) {
+        for (let y = 0; y < size; y++) {
+          kernel[x][y] = (1 / (2 * Math.PI * sigma * sigma)) * Math.exp(-((x - mean) ** 2 + (y - mean) ** 2) / (2 * sigma * sigma));
+          sum += kernel[x][y];
+        }
+      }
+
+      // Normalize the kernel
+      for (let x = 0; x < size; x++) {
+        for (let y = 0; y < size; y++) {
+          kernel[x][y] /= sum;
+        }
+      }
+
+      return kernel;
+    }
+  </script>
+</body>
+</html>

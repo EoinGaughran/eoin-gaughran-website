@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script async src="https://docs.opencv.org/3.4.0/opencv.js"></script>
+</head>
+<body>
+  <input type="file" id="fileInput">
+  <canvas id="canvasOutput"></canvas>
+  <script>
+    document.getElementById('fileInput').onchange = function(event) {
+      let imgElement = new Image();
+      imgElement.onload = function() {
+        let src = cv.imread(imgElement);
+        let blur1 = new cv.Mat();
+        let blur2 = new cv.Mat();
+        let dst = new cv.Mat();
+
+        // Apply Gaussian blurs with different sizes
+        cv.GaussianBlur(src, blur1, new cv.Size(5, 5), 0);
+        cv.GaussianBlur(src, blur2, new cv.Size(11, 11), 0);
+
+        // Subtract the two blurred images
+        cv.subtract(blur1, blur2, dst);
+
+        // Display result
+        cv.imshow('canvasOutput', dst);
+
+        // Clean up
+        src.delete();
+        blur1.delete();
+        blur2.delete();
+        dst.delete();
+      };
+      imgElement.src = URL.createObjectURL(event.target.files[0]);
+    };
+  </script>
+</body>
+</html>
