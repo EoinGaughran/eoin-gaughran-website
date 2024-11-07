@@ -6,7 +6,7 @@
 <body>
   <script>
     let img, imgBlur1, imgBlur2;
-    let sliderBlur1, sliderBlur2, applyButton, checkboxDoG, checkboxThreshold, sliderThreshold;
+    let sliderBlur1, sliderBlur2, applyButton, checkboxDoG, checkboxThreshold, sliderThreshold, sliderThresholdScaler;
 
     function preload() {
         img = loadImage('/public/media/img/DSC06583.JPG'); // replace with your image path
@@ -20,23 +20,27 @@
       //text('hi', 10, heights += 30);
 
       // Create sliders for Gaussian blur levels
-      sliderBlur1 = createSlider(1, 10, 1);
+      sliderBlur1 = createSlider(5, 50, 1);
       sliderBlur1.position(10, heights += 30);
-      sliderBlur1.style('width', '200px');
+      sliderBlur1.style('width', '300px');
 
       checkboxDoG = createCheckbox("Apply edge detection with DoG");
       checkboxDoG.position(10, heights += 30);
 
       sliderBlur2 = createSlider(1, 10, 2);
       sliderBlur2.position(10, heights += 30);
-      sliderBlur2.style('width', '200px');
+      sliderBlur2.style('width', '300px');
       
       checkboxThreshold = createCheckbox("Apply threshold");
       checkboxThreshold.position(10, heights += 30);
 
       sliderThreshold = createSlider(1, 30, 5);
       sliderThreshold.position(10, heights += 30);
-      sliderThreshold.style('width', '200px');
+      sliderThreshold.style('width', '300px');
+
+      sliderThresholdScaler = createSlider(80, 100, 100);
+      sliderThresholdScaler.position(10, heights += 30);
+      sliderThresholdScaler.style('width', '300px');
 
       // Button to apply the blur settings
       applyButton = createButton('Apply Filter');
@@ -49,33 +53,44 @@
     }
 
     function applyDoG() {
-        imgBlur1 = gaussianBlur(img, sliderBlur1.value());
+
+        imgBlur1 = gaussianBlur(img, (sliderBlur1.value()/10));
 
         if (checkboxDoG.checked()) {
 
-            imgBlur2 = gaussianBlur(img, (sliderBlur1.value()*sliderBlur2.value()));
+            imgBlur2 = gaussianBlur(img, (sliderBlur1.value()/10)*sliderBlur2.value());
 
             // Apply Difference of Gaussians
             loadPixels();
             imgBlur1.loadPixels();
             imgBlur2.loadPixels();
 
+            let thresholdScaler = sliderThresholdScaler.value()/100;
+
             for (let i = 0; i < pixels.length; i += 4) {
 
-                pixels[i] = imgBlur1.pixels[i] - imgBlur2.pixels[i]; // Red
-                pixels[i + 1] = imgBlur1.pixels[i + 1] - imgBlur2.pixels[i + 1]; // Green
-                pixels[i + 2] = imgBlur1.pixels[i + 2] - imgBlur2.pixels[i + 2]; // Blue
-                pixels[i + 3] = 255; // Alpha
-
                 if (checkboxThreshold.checked()) {
+
+                    pixels[i] = imgBlur1.pixels[i] - thresholdScaler * imgBlur2.pixels[i]; // Red
+                    pixels[i + 1] = imgBlur1.pixels[i + 1] - thresholdScaler * imgBlur2.pixels[i + 1]; // Green
+                    pixels[i + 2] = imgBlur1.pixels[i + 2] - thresholdScaler * imgBlur2.pixels[i + 2]; // Blue
+                    pixels[i + 3] = 255; // Alpha
 
                     for( let j = 0 ; j < 3 ; j += 1){
 
                         if( pixels[i + j] >= sliderThreshold.value() ) 
                             pixels[i + j] = 255;
                         else
-                            pixels[i + j] = 0;
+                        pixels[i + j] = 0;  
                     }
+                }
+
+                else {
+                    
+                    pixels[i] = imgBlur1.pixels[i] - imgBlur2.pixels[i]; // Red
+                    pixels[i + 1] = imgBlur1.pixels[i + 1] - imgBlur2.pixels[i + 1]; // Green
+                    pixels[i + 2] = imgBlur1.pixels[i + 2] - imgBlur2.pixels[i + 2]; // Blue
+                    pixels[i + 3] = 255; // Alpha
                 }
             }
 
